@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	
+	<flow name="GetAllFlow" doc:id="4170b823-51dd-4895-bde0-f7537db229fa" >
+		<db:select doc:name="Select" doc:id="9d850fcf-67de-4c97-ae2d-9a974fa142fb" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from payments]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="f34a978e-80e9-4831-a99b-988afd18ea9b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	transactionID: payload01.transactionID,
+	customerNumber: payload01.customerNumber,
+	paymentMode: payload01.paymentMode,
+	paymentDate: payload01.paymentDate as String{format: "dd-MMM-YYYY"} default "",
+	amount: payload01.amount
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetById" doc:id="8f5d52d3-852b-4e87-831a-a6a876c33200" >
+		<db:query-single doc:name="Query single" doc:id="9d38574a-2008-4811-b9f2-6ee4a428086c" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from payments where transactionID = :tId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	tId : vars.transactionID
+}]]]></db:input-parameters>
+		</db:query-single>
+		<choice doc:name="Choice" doc:id="2a13c769-6831-44a8-a79a-6e8a884360fe" >
+			<when expression="#[sizeOf(payload) &gt; 0]">
+				<ee:transform doc:name="Transform Message" doc:id="00d22dcc-1c84-4a5c-adff-577542b411af" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	transactionID: payload.transactionID,
+	customerNumber: payload.customerNumber,
+	paymentMode: payload.paymentMode,
+	paymentDate: payload.paymentDate as String{format: "YYYY-MMM-dd"},
+	amount: payload.amount
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="055289e4-ce14-4b3f-a703-fe519462a029" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DELETE" doc:id="62b55896-6b20-4d09-b838-d0e08892de17" >
+		<db:query-single doc:name="Query single" doc:id="a8ec9f5d-0038-4600-9bb7-bec27089ad2f" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from payments where transactionID  = :cno]]></db:sql>
+			<db:input-parameters ><![CDATA[#[cno : vars.transactionID]]]></db:input-parameters>
+		</db:query-single>
+		<choice doc:name="Choice" doc:id="c2421761-96d3-4a04-8eef-766ea4c1bddc" >
+			<when expression="#[sizeOf(payload) &gt; 0]">
+				<db:delete doc:name="Delete" doc:id="0f9a5254-5f8e-41b4-bef8-71c962b5e3d6" config-ref="Database_Config">
+					<db:sql ><![CDATA[delete from payments where transactionID   = :cno]]></db:sql>
+					<db:input-parameters ><![CDATA[#[cno : vars.transactionID]]]></db:input-parameters>
+				</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="20916bf0-f686-4e7f-9541-f2524e3338e1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "Deleted the payment with the transactionID  : " ++ vars.transactionID as String
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="3a73de12-a43b-4017-80ca-c9a3004653ad" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "Give the correct Number to delete"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="#[500]" doc:name="Set Variable" doc:id="ebade9ae-893f-4e2a-a15d-b5e1dd99df36" variableName="httpStatus"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<sub-flow name="VarSub_Flow" doc:id="edd6da13-a7cf-477c-9689-242981e2fb31" >
+		<set-variable value="#[message.payload.customerNumber]" doc:name="custNumber" doc:id="09e077ae-dd62-4f00-904b-46cc1274e1c8" variableName="Cno"/>
+		<set-variable value="#[message.payload.paymentMode]" doc:name="Mode" doc:id="c705328f-be23-49ce-a800-1945a93e8613" variableName="mode"/>
+		<set-variable value='#[message.payload.paymentDate as Date{format : "yyyy-MMM-dd"} as Date]' doc:name="Date" doc:id="9266e2b3-0a7e-4f23-bbc3-3a6d2e77a9a8" variableName="date"/>
+		<set-variable value="#[message.payload.amount]" doc:name="Amount" doc:id="da17e4ef-7559-446b-ae14-930cb4d27735" variableName="Amount"/>
+	</sub-flow>
+	<flow name="Post" doc:id="7800d3d0-7622-4822-be10-b2e1990d6931" >
+		<flow-ref doc:name="Flow Reference" doc:id="c4b9079f-567a-4cdd-bcdd-48bfcd23e944" name="VarSub_Flow"/>
+		<db:insert doc:name="Insert" doc:id="31160e05-6024-455b-9c05-e4f92c08df7e" config-ref="Database_Config">
+			<db:sql ><![CDATA[insert into payments(customerNumber,paymentMode,paymentDate,amount) values(:cno,:pm,:pd,:am)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	cno: vars.Cno,
+	pm : vars.mode,
+	pd : vars.date,
+	am : vars.Amount
+}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="c56d8d43-0c30-47db-8032-887f08a5668f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "new payment inserted with the transactionID  : "  ++ vars.transactionID  as String
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="PatchFlow" doc:id="02459e6e-c119-4ca5-ae2f-0c006c4bdf31" >
+		<flow-ref doc:name="Flow Reference" doc:id="0e1a0a5a-439b-4382-ad27-e35d7309f127" name="VarSub_Flow"/>
+		<db:update doc:name="Update" doc:id="07adaa21-c397-402d-b5d1-20e2ea339d4f" config-ref="Database_Config">
+			<db:sql ><![CDATA[Update payments set paymentDate = :pd,amount = :am where transactionID  = :cno]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	pd : vars.date,
+	am : vars.Amount,
+	cno: vars.transactionID 
+}]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Transform Message" doc:id="a7e97b13-2ebc-455c-8d14-c7866caff378" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "Details of the Payment Updated"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="Put" doc:id="6a04aedb-168e-47ad-88de-725b474d705c" >
+		<flow-ref doc:name="Flow Reference" doc:id="2333837e-7b91-4762-8866-85ca1f00121b" name="VarSub_Flow"/>
+		<db:query-single doc:name="Query single" doc:id="5049b47e-0ffd-4d20-9ac1-0bb251cbc30b" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from payments where transactionID  = :cno]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	cno: vars.transactionID 
+}]]]></db:input-parameters>
+		</db:query-single>
+		<choice doc:name="Choice" doc:id="ce33ed05-0e86-4203-a27d-80543d59075c" >
+			<when expression="#[sizeOf(payload) &gt; 0]">
+				<db:update doc:name="Update" doc:id="27a44cc9-eb83-4cf2-800d-f3ae2b277b2f" config-ref="Database_Config">
+					<db:sql ><![CDATA[update payments  set customerNumber = :cno ,paymentMode = :pm, paymentDate =:pd, amount =:am where transactionID  = :Cno]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	
+	cno: vars.Cno,
+	pm : vars.mode,
+	pd : vars.date,
+	am : vars.Amount,
+	Con: vars.transactionID 
+}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="599847b7-839e-4d34-9a5e-2f6097a0928b" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "Details Replaced Successfully"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<db:insert doc:name="Insert" doc:id="7c400f95-0493-4f10-9fa1-9c84e2ba78f9" config-ref="Database_Config">
+					<db:sql ><![CDATA[insert into payments(transactionID ,customerNumber,paymentMode,paymentDate,amount) values(:Tid,:cno,:pm,:pd,:am)]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	Tid : vars.transactionID,
+    cno: vars.Cno,
+	pm : vars.mode,
+	pd : vars.date,
+	am : vars.Amount	
+}]]]></db:input-parameters>
+				</db:insert>
+				<ee:transform doc:name="Transform Message" doc:id="4a00e76a-6935-48e8-bba7-03ecc0d659ee" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "Details Inserted Successfully"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	
+	
+	
+	
+	</mule>

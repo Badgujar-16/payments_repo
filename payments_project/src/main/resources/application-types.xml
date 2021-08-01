@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="pay" format="json">
+      <types:shape format="weave" example="examples/PaymentsArray.json"><![CDATA[%dw 2.0
+
+type pay = Array<{|  transactionID: Number {"typeId": "int"},   customerNumber: String,   paymentMode: String,   paymentDate: String,   amount: Number {"typeId": "int"}|}> {"example": "[{\\\"transactionID\\\":1,\\\"customerNumber\\\":\\\"C101\\\",\\\"paymentMode\\\":\\\"online payment\\\",\\\"paymentDate\\\":\\\"20-MAR-2020\\\",\\\"amount\\\":96},{\\\"transactionID\\\":2,\\\"customerNumber\\\":\\\"C102\\\",\\\"paymentMode\\\":\\\"cash\\\",\\\"paymentDate\\\":\\\"01-FEB-2020\\\",\\\"amount\\\":100}]"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="Obj" format="json">
+      <types:shape format="weave" example="examples/paymentsobj.json"><![CDATA[%dw 2.0
+
+type Obj = {|
+  transactionID: Number {"typeId": "int"}, 
+  customerNumber: String, 
+  paymentMode: String, 
+  paymentDate: String, 
+  amount: Number {"typeId": "int"}
+|} {"example": "{\\\"transactionID\\\":1,\\\"customerNumber\\\":\\\"C101\\\",\\\"paymentMode\\\":\\\"online payment\\\",\\\"paymentDate\\\":\\\"20-MAR-2020\\\",\\\"amount\\\":96}"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#00d22dcc-1c84-4a5c-adff-577542b411af">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="Obj"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#f34a978e-80e9-4831-a99b-988afd18ea9b">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="pay"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>

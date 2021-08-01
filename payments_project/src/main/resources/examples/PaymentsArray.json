@@ -1,0 +1,16 @@
+[
+  {
+    "transactionID": 1,
+    "customerNumber": "C101",
+    "paymentMode": "online payment",
+    "paymentDate": "20-MAR-2020",
+    "amount": 96
+  },
+  {
+    "transactionID": 2,
+    "customerNumber": "C102",
+    "paymentMode": "cash",
+    "paymentDate": "01-FEB-2020",
+    "amount": 100
+  }
+]

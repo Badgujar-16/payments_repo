@@ -1,0 +1,7 @@
+{
+  "transactionID": 1,
+  "customerNumber": "C101",
+  "paymentMode": "online payment",
+  "paymentDate": "20-MAR-2020",
+  "amount": 96
+}
